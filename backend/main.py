@@ -1,6 +1,6 @@
 import uuid
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from pydantic import BaseModel
@@ -9,7 +9,7 @@ from backend.db.database import init_db
 from backend.rag.chunker import chunk_pages
 from backend.rag.pdf_reader import extract_pages
 from backend.rag.qa import answer_question
-from backend.rag.vector_store import add_document
+from backend.rag.vector_store import add_document, get_document_text
 from backend.services.llm_client import ask_llm
 from backend.services.memory import (
     create_conversation,
@@ -18,10 +18,13 @@ from backend.services.memory import (
     list_conversations,
     conversation_exists,
 )
+from backend.services.study import summarize, MAX_CHARS
+from backend.routes.study_routes import router as study_router
 
 init_db()
 
 app = FastAPI()
+app.include_router(study_router)
 
 UPLOAD_DIR = Path("data/uploads")
 MAX_PDF_BYTES = 20 * 1024 * 1024
@@ -35,6 +38,12 @@ class ChatRequest(BaseModel):
 class AskPdfRequest(BaseModel):
     doc_id: str
     question: str
+
+
+class SummarizeRequest(BaseModel):
+    text: Optional[str] = None
+    doc_id: Optional[str] = None
+    length: Literal["short", "medium", "detailed"] = "medium"
 
 
 @app.get("/")
@@ -125,3 +134,29 @@ def ask_pdf(request: AskPdfRequest):
     if result is None:
         raise HTTPException(status_code=404, detail="Document not found")
     return result
+
+
+@app.post("/summarize")
+def summarize_endpoint(request: SummarizeRequest):
+    if (request.text is None) == (request.doc_id is None):
+        raise HTTPException(status_code=400, detail="Send either text or doc_id, not both")
+
+    if request.doc_id is not None:
+        source = get_document_text(request.doc_id)
+        if not source:
+            raise HTTPException(status_code=404, detail="Document not found")
+    else:
+        source = request.text.strip()
+        if not source:
+            raise HTTPException(status_code=400, detail="Text is empty")
+
+    if len(source) > MAX_CHARS:
+        raise HTTPException(status_code=413, detail="Text is too long to summarize in one request")
+
+    try:
+        summary = summarize(source, request.length)
+    except Exception as error:
+        print("Summarize error:", error)
+        raise HTTPException(status_code=502, detail="The AI model is not available right now")
+
+    return {"length": request.length, "summary": summary}

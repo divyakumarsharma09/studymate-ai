@@ -42,3 +42,12 @@ def search(question: str, doc_id: str, top_k: int = 4) -> list:
     ):
         hits.append({"text": text, "page": meta["page"], "score": round(1 - distance, 3)})
     return hits
+def get_document_text(doc_id: str) -> str:
+    data = _collection.get(where={"doc_id": doc_id})
+    if not data["ids"]:
+        return ""
+    ordered = sorted(
+        zip(data["ids"], data["documents"]),
+        key=lambda item: int(item[0].rsplit("-", 1)[1]),
+    )
+    return "\n\n".join(text for _, text in ordered)

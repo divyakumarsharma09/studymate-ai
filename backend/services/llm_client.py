@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 from google import genai
+from google.genai import types
 
 load_dotenv()
 
@@ -16,5 +17,17 @@ def ask_llm(history: list) -> str:
     response = client.models.generate_content(
         model=MODEL,
         contents=contents,
+    )
+    return response.text
+
+
+def ask_llm_json(prompt: str) -> str:
+    response = client.models.generate_content(
+        model=MODEL,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            temperature=0.4,
+        ),
     )
     return response.text
