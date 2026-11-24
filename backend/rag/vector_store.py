@@ -51,3 +51,13 @@ def get_document_text(doc_id: str) -> str:
         key=lambda item: int(item[0].rsplit("-", 1)[1]),
     )
     return "\n\n".join(text for _, text in ordered)
+def list_documents() -> list:
+    data = _collection.get(include=["metadatas"])
+    docs = {}
+    for meta in data["metadatas"]:
+        entry = docs.setdefault(
+            meta["doc_id"],
+            {"doc_id": meta["doc_id"], "filename": meta["filename"], "chunks": 0},
+        )
+        entry["chunks"] += 1
+    return list(docs.values())

@@ -9,7 +9,7 @@ from backend.db.database import init_db
 from backend.rag.chunker import chunk_pages
 from backend.rag.pdf_reader import extract_pages
 from backend.rag.qa import answer_question
-from backend.rag.vector_store import add_document, get_document_text
+from backend.rag.vector_store import add_document, get_document_text, list_documents
 from backend.services.llm_client import ask_llm
 from backend.services.memory import (
     create_conversation,
@@ -160,3 +160,6 @@ def summarize_endpoint(request: SummarizeRequest):
         raise HTTPException(status_code=502, detail="The AI model is not available right now")
 
     return {"length": request.length, "summary": summary}
+@app.get("/documents")
+def documents():
+    return list_documents()
