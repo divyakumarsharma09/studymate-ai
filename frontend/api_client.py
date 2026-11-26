@@ -26,6 +26,17 @@ def upload_pdf(filename: str, data: bytes):
     return response.json()
 
 
+def post_image(filename: str, data: bytes, mime_type: str, task: str, question: str):
+    response = requests.post(
+        f"{BASE_URL}/image",
+        files={"file": (filename, data, mime_type)},
+        data={"task": task, "question": question},
+        timeout=TIMEOUT,
+    )
+    response.raise_for_status()
+    return response.json()
+
+
 def error_detail(error: requests.RequestException) -> str:
     response = getattr(error, "response", None)
     if response is not None:

@@ -20,11 +20,15 @@ from backend.services.memory import (
 )
 from backend.services.study import summarize, MAX_CHARS
 from backend.routes.study_routes import router as study_router
+from backend.routes.code_routes import router as code_router
+from backend.routes.image_routes import router as image_router
 
 init_db()
 
 app = FastAPI()
 app.include_router(study_router)
+app.include_router(code_router)
+app.include_router(image_router)
 
 UPLOAD_DIR = Path("data/uploads")
 MAX_PDF_BYTES = 20 * 1024 * 1024
